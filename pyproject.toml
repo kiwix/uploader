@@ -1,0 +1,181 @@
+[build-system]
+requires = ["uv_build>=0.11.2,<0.12.0"]
+build-backend = "uv_build"
+
+[project]
+name = "kiwix-uploader"
+version = "1.4.dev0"
+description = "SCP/SFTP helper for Kiwix, openZIM and offspot uploads to our dropbox"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "kiwixstorage==0.10.1",
+    "humanfriendly==10.0",
+]
+license = {text = "GPL-3.0-or-later"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: POSIX",
+]
+
+[project.optional-dependencies]
+scripts = [
+  "rust-just==1.48.0",
+]
+lint = [
+  "ruff==0.15.6",
+]
+check = [
+  "pyright==1.1.408",
+]
+test = [
+  "pytest==9.0.2",
+  "coverage==7.13.5",
+]
+dev = [
+  "ipython==9.11.0",
+  "just==0.8.165",
+  "kiwix-uploader[scripts]",
+  "kiwix-uploader[lint]",
+  "kiwix-uploader[test]",
+  "kiwix-uploader[check]",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/kiwix/uploader"
+"Donate" = "https://donate.kiwix.org/"
+
+[project.scripts]
+uploader = "kiwix_uploader.entrypoint:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+src = ["src"]
+
+[lint]
+select = [
+  "A",  # flake8-builtins
+  # "ANN",  # flake8-annotations
+  "ARG",  # flake8-unused-arguments
+  # "ASYNC",  # flake8-async
+  "B",  # flake8-bugbear
+  # "BLE",  # flake8-blind-except
+  "C4",  # flake8-comprehensions
+  "C90",  # mccabe
+  # "COM",  # flake8-commas
+  # "D",  # pydocstyle
+  # "DJ",  # flake8-django
+  "DTZ",  # flake8-datetimez
+  "E",  # pycodestyle (default)
+  "EM",  # flake8-errmsg
+  # "ERA",  # eradicate
+  # "EXE",  # flake8-executable
+  "F",  # Pyflakes (default)
+  # "FA",  # flake8-future-annotations
+  "FBT",  # flake8-boolean-trap
+  # "FLY",  # flynt
+  # "G",  # flake8-logging-format
+  "I",  # isort
+  "ICN",  # flake8-import-conventions
+  # "INP",  # flake8-no-pep420
+  # "INT",  # flake8-gettext
+  "ISC",  # flake8-implicit-str-concat
+  "N",  # pep8-naming
+  # "NPY",  # NumPy-specific rules
+  # "PD",  # pandas-vet
+  # "PGH",  # pygrep-hooks
+  # "PIE",  # flake8-pie
+  # "PL",  # Pylint
+  "PLC",  # Pylint: Convention
+  "PLE",  # Pylint: Error
+  "PLR",  # Pylint: Refactor
+  "PLW",  # Pylint: Warning
+  # "PT",  # flake8-pytest-style
+  # "PTH",  # flake8-use-pathlib
+  # "PYI",  # flake8-pyi
+  "Q",  # flake8-quotes
+  # "RET",  # flake8-return
+  # "RSE",  # flake8-raise
+  "RUF",  # Ruff-specific rules
+  "S",  # flake8-bandit
+  # "SIM",  # flake8-simplify
+  # "SLF",  # flake8-self
+  "T10",  # flake8-debugger
+  "T20",  # flake8-print
+  # "TCH",  # flake8-type-checking
+  # "TD",  # flake8-todos
+  "TID",  # flake8-tidy-imports
+  # "TRY",  # tryceratops
+  "UP",  # pyupgrade
+  "W",  # pycodestyle
+  "YTT",  # flake8-2020
+]
+ignore = [
+  # Allow non-abstract empty methods in abstract base classes
+  "B027",
+  # Remove flake8-errmsg since we consider they bloat the code and provide limited value
+  "EM",
+  # Allow boolean positional values in function calls, like `dict.get(... True)`
+  "FBT003",
+  # Ignore checks for possible passwords
+  "S105", "S106", "S107",
+  # Ignore warnings on subprocess.run / popen
+  "S603",
+  # Ignore complexity
+  "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
+  # Ignore magic-value-comparison
+  "PLR2004"
+]
+unfixable = [
+  # Don't touch unused imports
+  "F401",
+]
+
+[lint.per-file-ignores]
+"tests/**/*" = [
+  # can use magic values, assertions and relative imports
+  "PLR2004", "S101", "TID252",
+  # can bind to all ifaces
+  "S104",
+  # can use Boolean positional arg in function definition
+  "FBT001",
+]
+
+[tool.pytest.ini_options]
+minversion = "7.3"
+testpaths = ["tests"]
+pythonpath = [".", "src"]
+
+[tool.coverage.paths]
+offspot_config = ["src/kiwix_uploader"]
+tests = ["tests"]
+
+[tool.coverage.run]
+source_pkgs = ["kiwix_uploader"]
+branch = true
+parallel = true
+omit = [
+  "src/kiwix_uploader/__about__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+
+[tool.pyright]
+include = ["src", "tests"]
+exclude = [".env/**", ".venv/**"]
+extraPaths = ["src"]
+pythonVersion = "3.13"
+typeCheckingMode="basic"
+reportImplicitStringConcatenation=false

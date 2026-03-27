@@ -1,0 +1,165 @@
+import datetime
+import subprocess
+from typing import Callable
+import urllib.parse
+import sys
+import signal
+import tempfile
+import time
+from pathlib import Path
+
+from kiwix_uploader.context import Context, humanfriendly
+
+context = Context.get()
+logger = context.logger
+
+
+def now() -> datetime.datetime:
+    return datetime.datetime.now()
+
+
+def ack_host_fingerprint(host, port):
+    """run/store ssh-keyscan to prevent need to manually confirm host fingerprint"""
+    keyscan = subprocess.run(
+        ["/usr/bin/ssh-keyscan", "-p", str(port), host],
+        capture_output=True,
+        text=True,
+    )
+    if keyscan.returncode != 0:
+        logger.error(f"unable to get remote host ({host}:{port}) public key")
+        sys.exit(1)
+
+    with open(context.host_know_file, "w") as keyscan_output:
+        keyscan_output.write(keyscan.stdout)
+        keyscan_output.seek(0)
+
+
+def remove_source_file(src_path: Path):
+    logger.info("removing source file…")
+    try:
+        src_path.unlink()
+    except Exception as exc:
+        logger.error(f":: failed to remove ZIM file: {exc}")
+    else:
+        logger.info(":: success.")
+
+
+def parse_url(url: str) -> urllib.parse.ParseResult:
+    return urllib.parse.urlparse(url, allow_fragments=False)
+
+
+def rebuild_uri(
+    uri,
+    scheme=None,
+    username=None,
+    password=None,
+    hostname=None,
+    port=None,
+    path=None,
+    params=None,
+    query=None,
+    fragment=None,
+) -> urllib.parse.ParseResultBytes:
+    scheme = scheme or uri.scheme
+    username = username or uri.username
+    password = password or uri.password
+    hostname = hostname or uri.hostname
+    port = port or uri.port
+    path = path or uri.path
+    netloc = ""
+    if username:
+        netloc += username
+    if password:
+        netloc += f":{password}"
+    if username or password:
+        netloc += "@"
+    netloc += hostname
+    if port:
+        netloc += f":{port}"
+    params = params or uri.params
+    query = query or uri.query
+    fragment = fragment or uri.fragment
+    return urllib.parse.urlparse(
+        urllib.parse.urlunparse([scheme, netloc, path, fragment, query, fragment])
+    )
+
+
+def get_batch_file(commands: list[str]) -> str:
+    command_content = "\n".join(commands)
+    logger.debug(f"SFTP commands:\n{command_content}---")
+    batch_file = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+    batch_file.write(command_content)
+    batch_file.close()
+    return batch_file.name
+
+
+def display_stats(
+    filesize: int,
+    started_on: datetime.datetime,
+    ended_on: datetime.datetime | None = None,
+):
+    ended_on = ended_on or now()
+    duration = (ended_on - started_on).total_seconds()
+    if humanfriendly:
+        hfilesize = humanfriendly.format_size(filesize, binary=True)
+        hduration = humanfriendly.format_timespan(duration, max_units=2)
+        speed = humanfriendly.format_size(filesize / duration)
+        msg = f"uploaded {hfilesize} in {hduration} ({speed}/s)"
+    else:
+        hfilesize = filesize / 2**20  # size in MiB
+        speed = filesize / 1000000 / duration  # MB/s
+        duration = duration / 60  # in mn
+        msg = f"uploaded {hfilesize:.3}MiB in {duration:.1}mn ({speed:.3}MBps)"
+    logger.info(f"[stats] {msg}")
+
+
+def watched_upload(delay: int, method: Callable, **kwargs):
+    str_delay = humanfriendly.format_timespan(delay) if humanfriendly else f"{delay}s"
+    logger.info(f"... watching file until {str_delay} after last modification")
+
+    class ExitCatcher:
+        def __init__(self):
+            self.requested = False
+            for name in ["TERM", "INT", "QUIT"]:
+                signal.signal(getattr(signal, f"SIG{name}"), self.on_exit)
+
+        def on_exit(self, signum, frame):
+            self.requested = True
+            logger.info(f"received signal {signal.strsignal(signum)}, graceful exit.")
+
+    exit_catcher = ExitCatcher()
+    last_change = datetime.datetime.fromtimestamp(kwargs["src_path"].stat().st_mtime)
+    last_upload, retries = None, 10
+
+    while (
+        # make sure we upload it at least once
+        not last_upload
+        # delay without change has not expired
+        or datetime.datetime.now() - datetime.timedelta(seconds=delay) < last_change
+    ):
+        # file has changed (or initial), we need to upload
+        if not last_upload or last_upload < last_change:
+            started_on = datetime.datetime.now()
+            kwargs["filesize"] = kwargs["src_path"].stat().st_size
+            returncode = method(**kwargs)
+            if returncode != 0:
+                retries -= 1
+                if retries <= 0:
+                    return returncode
+            else:
+                if not last_upload:  # this was first run
+                    kwargs["resume"] = True
+                last_upload = started_on
+
+        if exit_catcher.requested:
+            break
+
+        # nb of seconds to sleep between modtime checks
+        time.sleep(1)
+
+        # refresh modification time
+        last_change = datetime.datetime.fromtimestamp(
+            kwargs["src_path"].stat().st_mtime
+        )
+    if not exit_catcher.requested:
+        logger.info(f"File last modified on {last_change}. Delay expired.")
