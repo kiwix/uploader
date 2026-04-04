@@ -5,8 +5,7 @@ from pathlib import Path
 from kiwixstorage import FileTransferHook, KiwixStorage
 
 from kiwix_uploader.context import Context
-from kiwix_uploader.utils import rebuild_uri, now, remove_source_file, display_stats
-
+from kiwix_uploader.utils import display_stats, now, rebuild_uri, remove_source_file
 
 context = Context.get()
 logger = context.logger

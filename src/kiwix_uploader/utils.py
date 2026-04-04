@@ -1,12 +1,12 @@
 import datetime
-import subprocess
-from typing import Callable
-import urllib.parse
-import sys
 import signal
+import subprocess
+import sys
 import tempfile
 import time
+import urllib.parse
 from pathlib import Path
+from typing import Callable
 
 from kiwix_uploader.context import Context, humanfriendly
 
@@ -49,31 +49,31 @@ def parse_url(url: str) -> urllib.parse.ParseResult:
 
 
 def rebuild_uri(
-    uri,
-    scheme=None,
-    username=None,
-    password=None,
-    hostname=None,
-    port=None,
-    path=None,
-    params=None,
-    query=None,
-    fragment=None,
-) -> urllib.parse.ParseResultBytes:
+    uri: urllib.parse.ParseResult,
+    scheme: str | None = None,
+    username: str | None = None,
+    password: str | None = None,
+    hostname: str | None = None,
+    port: int | None = None,
+    path: str | None = None,
+    params: str | None = None,
+    query: str | None = None,
+    fragment: str | None = None,
+) -> urllib.parse.ParseResult:
     scheme = scheme or uri.scheme
     username = username or uri.username
     password = password or uri.password
     hostname = hostname or uri.hostname
     port = port or uri.port
     path = path or uri.path
-    netloc = ""
+    netloc: str = ""
     if username:
-        netloc += username
+        netloc += str(username)
     if password:
         netloc += f":{password}"
     if username or password:
         netloc += "@"
-    netloc += hostname
+    netloc += str(hostname)
     if port:
         netloc += f":{port}"
     params = params or uri.params

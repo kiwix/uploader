@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+Adds multiple destination support to uploader (uses threads)
+
+### Added
+
+- `multi_file_upload()`
+- `UploadResult` and `UploadResults` types, returned by `multi_file_upload()`
+- `UploadThread` and `UploadManager` for additional control
+
+### Changed
+
+- `check_and_upload_file`, `upload_file`, `watched_upload`, `upload_file_retrying` moved from `upload` module to `api` module.
+- Log messages now includes thread name
+
 ## [1.4] - 2026-03-27
 
 ### Added
