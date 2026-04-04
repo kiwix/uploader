@@ -14,11 +14,14 @@ Adds multiple destination support to uploader (uses threads)
 - `multi_file_upload()`
 - `UploadResult` and `UploadResults` types, returned by `multi_file_upload()`
 - `UploadThread` and `UploadManager` for additional control
+- `delete_after` creating a `.delete_on` marker file containing an UTC date to delete file on.
 
 ### Changed
 
 - `check_and_upload_file`, `upload_file`, `watched_upload`, `upload_file_retrying` moved from `upload` module to `api` module.
 - Log messages now includes thread name
+- `delete_after` renamed to `wasabi_delete_after` as it was a wasabi-specific feature.
+- ⚠️ `delete_after` param reused for marker file feature
 
 ## [1.4] - 2026-03-27
 

@@ -1,18 +1,24 @@
 import os
+import shutil
+import tempfile
 import time
 import urllib.parse
 from pathlib import Path
 
-from kiwix_uploader.context import Context, humanfriendly
+from kiwix_uploader.context import Context
 from kiwix_uploader.s3 import s3_upload_file
 from kiwix_uploader.scp import scp_upload_file
 from kiwix_uploader.sftp import sftp_upload_file
 from kiwix_uploader.upload import UploadResults, UploadsManager
 from kiwix_uploader.utils import (
     ack_host_fingerprint,
+    get_expiration_for,
     rebuild_uri,
-    watched_upload, remove_source_file,
+    remove_source_file,
+    watched_upload,
 )
+
+import humanfriendly
 
 context = Context.get()
 logger = context.logger
@@ -31,6 +37,7 @@ def upload_file(
     bandwidth: int | None = context.bandwidth,
     cipher: str | None = context.cipher,
     delete_after: int = context.delete_after,
+    wasabi_delete_after: int = context.wasabi_delete_after,
 ):
     try:
         upload_uri = urllib.parse.urlparse(upload_url)
@@ -70,7 +77,7 @@ def upload_file(
     if upload_uri.scheme in ("scp",) + context.s3_schemes and resume:
         logger.warning("--resume not supported via SCP/S3. Will upload from scratch.")
 
-    if upload_uri.scheme not in context.s3_schemes and delete_after > 0:
+    if upload_uri.scheme not in context.s3_schemes and wasabi_delete_after > 0:
         logger.warning("--delete-after only supported on S3/Wasabi.")
 
     kwargs = {
@@ -85,20 +92,48 @@ def upload_file(
         "bandwidth": bandwidth,
         "cipher": cipher,
         "delete_after": delete_after,
+        "wasabi_delete_after": wasabi_delete_after,
     }
+
+    # upload marker first
+    if delete_after > 0:
+        # store marker on disk
+        marker_dir = Path(
+            tempfile.TemporaryDirectory(
+                prefix="uploader_",
+                suffix=".marker",
+                ignore_cleanup_errors=True,
+                delete=False,
+            ).name
+        )
+        marker_fpath = marker_dir.joinpath(f"{src_path.name}.delete_on")
+        marker_fpath.write_text(get_expiration_for(delete_after).isoformat())
+        marker_kwargs = kwargs.copy()
+        marker_kwargs["src_path"] = marker_fpath
+        marker_kwargs["filesize"] = marker_fpath.stat().st_size
+        marker_kwargs["resume"] = False
+        marker_kwargs["bandwidth"] = context.bandwidth
+        marker_kwargs["delete_after"] = context.delete_after
+        logger.debug(f"Uploading marker file {marker_fpath.name}…")
+        rc = method(**marker_kwargs)
+        if rc != 0:
+            return rc
+        logger.debug("> marker file uploaded")
 
     if watch_for:
         try:
             # without humanfriendly, watch is considered to be in seconds
-            watch = int(
-                humanfriendly.parse_timespan(watch_for) if humanfriendly else watch_for
-            )
+            watch = int(humanfriendly.parse_timespan(watch_for))
         except Exception as exc:
             logger.critical(f"--watch delay ({watch_for}) not correct: {exc}")
             return 1
         return watched_upload(watch, method, **kwargs)
 
-    return method(**kwargs)
+    try:
+        return method(**kwargs)
+    finally:
+        if delete_after > 0:
+            shutil.rmtree(marker_dir)
 
 
 def check_and_upload_file(
@@ -114,6 +149,7 @@ def check_and_upload_file(
     bandwidth: int | None = context.bandwidth,
     cipher: str | None = context.cipher,
     delete_after: int = context.delete_after,
+    wasabi_delete_after: int = context.wasabi_delete_after,
     attempts: int = context.attempts,
     attempts_delay: int = context.attempts_delay,
 ) -> UploadResults:
@@ -188,6 +224,7 @@ def check_and_upload_file(
         bandwidth=bandwidth,
         cipher=cipher,
         delete_after=delete_after,
+        wasabi_delete_after=wasabi_delete_after,
         attempts=attempts,
         attempts_delay=attempts_delay,
     )
@@ -206,6 +243,7 @@ def upload_file_retrying(
     bandwidth: int | None = context.bandwidth,
     cipher: str | None = context.cipher,
     delete_after: int = context.delete_after,
+    wasabi_delete_after: int = context.wasabi_delete_after,
     attempts: int = context.attempts,
     attempts_delay: int = context.attempts_delay,
 ):
@@ -228,6 +266,7 @@ def upload_file_retrying(
             bandwidth=bandwidth,
             cipher=cipher,
             delete_after=delete_after,
+            wasabi_delete_after=wasabi_delete_after,
         )
         if rc != 0:
             if not attempts:
@@ -238,7 +277,6 @@ def upload_file_retrying(
                 time.sleep(attempts_delay)
             continue
     return rc
-
 
 
 def multi_file_upload(
@@ -254,10 +292,11 @@ def multi_file_upload(
     bandwidth: int | None = context.bandwidth,
     cipher: str | None = context.cipher,
     delete_after: int = context.delete_after,
+    wasabi_delete_after: int = context.wasabi_delete_after,
     attempts: int = context.attempts,
     attempts_delay: int = context.attempts_delay,
 ) -> UploadResults:
-    """ Upload a single file to one or more destinations"""
+    """Upload a single file to one or more destinations"""
 
     # at the moment, we only support parallel uploads
     manager = UploadsManager(
@@ -274,6 +313,7 @@ def multi_file_upload(
         bandwidth=bandwidth,
         cipher=cipher,
         delete_after=delete_after,
+        wasabi_delete_after=wasabi_delete_after,
         attempts=attempts,
         attempts_delay=attempts_delay,
     )

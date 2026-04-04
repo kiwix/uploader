@@ -4,9 +4,6 @@ import os
 import sys
 
 from kiwix_uploader.context import Context
-from kiwix_uploader.api import check_and_upload_file
-
-logger = Context.logger
 
 
 def main():
@@ -39,6 +36,7 @@ def main():
     parser.add_argument(
         "--username",
         help="username to authenticate to warehouse (if not in URI)",
+        default=Context.username,
     )
 
     parser.add_argument(
@@ -46,7 +44,7 @@ def main():
         help="whether to continue uploading existing remote file instead "
         "of overriding (SFTP only)",
         action="store_true",
-        default=False,
+        default=Context.resume,
     )
 
     # format: https://humanfriendly.readthedocs.io/en/latest/api.html
@@ -57,33 +55,35 @@ def main():
         "for that period of time (ex. 10s 1m 2h 3d)",
         dest="watch_for",
         action="store",
+        default=Context.watch_for,
     )
 
     parser.add_argument(
         "--move",
         help="whether to upload to a temp location and move to final one on success",
         action="store_true",
-        default=False,
+        default=Context.move,
     )
 
     parser.add_argument(
         "--delete",
         help="whether to delete source file upon success",
         action="store_true",
-        default=False,
+        default=Context.delete,
     )
 
     parser.add_argument(
         "--compress",
         help="whether to enable ssh compression on transfer (good for text)",
         action="store_true",
-        default=False,
+        default=Context.compress,
     )
 
     parser.add_argument(
         "--bandwidth",
         help="limit bandwidth used for transfer. In Kbit/s.",
         type=int,
+        default=Context.bandwidth
     )
 
     parser.add_argument(
@@ -92,23 +92,34 @@ def main():
 
     parser.add_argument(
         "--delete-after",
+        help="nb of days after which one can delete the file. "
+        "⚠️ uploads a file at {fname}.delete_on with an ISO UTC datetime. "
+        "It's up to system admin to delete the file once that marker's value expires.",
+        type=int,
+        dest="delete_after",
+        default=Context.delete_after,
+    )
+
+    parser.add_argument(
+        "--wasabi-delete-after",
         help="nb of days after which to autodelete "
         "(Wasabi/S3-only, bucket must support it)",
         type=int,
-        default=None,
+        dest="wasabi_delete_after",
+        default=Context.wasabi_delete_after,
     )
 
     parser.add_argument(
         "--attempts",
         help="Number of upload attempts before giving up should it fail",
-        default=3,
+        default=Context.attempts,
         type=int,
     )
 
     parser.add_argument(
         "--attempts-delay",
         help="Delay (seconds) between attempts should the upload fail.",
-        default=3 * 60,
+        default=Context.attempts_delay,
         type=int,
     )
 
@@ -116,11 +127,11 @@ def main():
         "--debug",
         help="change logging level to DEBUG",
         action="store_true",
-        default=False,
+        default=Context.debug,
     )
 
     args = parser.parse_args()
-    logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
+    Context.logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
 
     Context.setup(
         debug=args.debug,
@@ -136,6 +147,8 @@ def main():
         attempts=args.attempts,
         attempts_delay=args.attempts_delay,
     )
+
+    from kiwix_uploader.api import check_and_upload_file
 
     sys.exit(
         check_and_upload_file(

@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-try:
-    import humanfriendly
-except ImportError:
-    humanfriendly = None
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(threadName)40s] %(levelname)8s | %(message)s",
+)
 
 
 @dataclass(kw_only=True)
@@ -33,18 +33,17 @@ class Context:
     bandwidth: int = -1
     cipher: str = "aes128-ctr"
     delete_after: int = -1
+    wasabi_delete_after: int = -1
     attempts: int = 3
     attempts_delay: int = 3 * 60  # seconds
 
     logger: logging.Logger = logging.getLogger("uploader")  # noqa: RUF009
 
-    def __post_init__(self):
-        self.debug = bool(os.getenv("debug", ""))
-
     @classmethod
     def setup(cls, **kwargs: Any):
+        if cls._instance:
+            raise OSError("Already inited Context")
         cls._instance = cls(**kwargs)
-        cls._instance.__post_init__()
         cls.setup_logger()
 
     @classmethod
@@ -62,10 +61,10 @@ class Context:
         def handle_exc(msg, *args, **kwargs):
             cls.logger.debug(msg, *args, exc_info=True, **kwargs)
 
-        cls.logger.exception = handle_exc
+        cls.logger.exception = handle_exc  # ty:ignore[invalid-assignment]
 
     @classmethod
     def get(cls) -> "Context":
         if not cls._instance:
-            raise OSError("Uninitialized context")  # pragma: no cover
-        return cls._instance
+            cls.setup()
+        return cls._instance  # ty:ignore[invalid-return-type]  # pyright:ignore[reportReturnType]

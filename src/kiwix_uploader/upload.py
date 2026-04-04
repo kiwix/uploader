@@ -1,5 +1,6 @@
 import datetime
 import threading
+import traceback
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,10 +18,9 @@ def excepthook(args: threading.ExceptHookArgs, /):
     logger.error(
         f"Upload thread {args.thread} raised {args.exc_type}: {args.exc_value}"
     )
-    logger.debug(args.exc_traceback)
     if isinstance(args.thread, UploadThread):
         args.thread.record_exc(args.exc_type, args.exc_value)
-
+    logger.debug(traceback.format_tb(args.exc_traceback))
 
 threading.excepthook = excepthook
 
