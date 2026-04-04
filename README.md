@@ -1,16 +1,17 @@
 uploader
 ===
 
-Dedicated container/script to upload files to openzim/kiwix warehouses and S3
+Dedicated container/script to upload files to openzim/kiwix warehouses
 
-Files are uploaded via SFTP (pubkey authentication) or SCP using OpenSSH.
+Files are uploaded via SFTP or SCP using OpenSSH and (pubkey authentication).
+Files are uploaded to S3 assuming `bucketName`, `keyId` and `secretAccessKey` in query string.
 
 
 ## Usage
 
 * Specify file to upload with `--file`.
 * Mount the RSA private key onto `/etc/ssh/keys/id_rsa` or use `--private_key`
-* Use an `scp://` or `sftp://` URI to specify target.
+* Use an `scp://`, `sftp://`, `s3://` URLs to specify target.
 * Specify a full path (with filename) to upload to a specific name or end with a `/` for uploading inside a folder
 
 ``` sh
@@ -21,6 +22,7 @@ docker run \
     uploader \
     --file /path/my_file.zim \
     --upload-uri sftp://uploader@warehouse.farm.openzim.org/zim/ \
+    --upload-uri "s3://s3.us-west-1.wasabisys.com/?bucketName=my-bucket&keyId=my-key&secretAccessKey=my-secret" \
     --move \
     --delete
 ```
@@ -55,3 +57,16 @@ check_and_upload_file(
 ```
 
 _Note_: `check_and_upload_file` returns an unix-like returncode (`0` on success)
+
+
+```py
+from kiwix_uploader import multi_file_upload
+
+multi_file_upload(
+    src_path="/path/my_file.zim",
+    upload_uris=["sftp://uploader@warehouse.farm.openzim.org/zim/"],
+    private_key="~/.ssh/id_rsa",
+)
+```
+
+_Note_: `multi_file_upload` returns an `UploadResults` (see `upload` module)

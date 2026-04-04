@@ -3,11 +3,11 @@ from pathlib import Path
 
 from kiwix_uploader.context import Context
 from kiwix_uploader.utils import (
+    display_stats,
     get_batch_file,
+    now,
     parse_url,
     rebuild_uri,
-    display_stats,
-    now,
     remove_source_file,
 )
 

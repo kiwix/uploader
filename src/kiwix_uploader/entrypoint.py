@@ -3,8 +3,8 @@ import logging
 import os
 import sys
 
-from kiwix_uploader.upload import check_and_upload_file
 from kiwix_uploader.context import Context
+from kiwix_uploader.api import check_and_upload_file
 
 logger = Context.logger
 
@@ -23,7 +23,9 @@ def main():
         "--upload-url",
         help="upload URL to upload to (folder, trailing-slash)",
         required=True,
-        dest="upload_url",
+        action="append",
+        type=str,
+        dest="upload_urls",
     )
 
     parser.add_argument(
@@ -138,9 +140,9 @@ def main():
     sys.exit(
         check_and_upload_file(
             src_path=args.src_path,
-            upload_url=args.upload_url,
+            upload_urls=args.upload_urls,
             private_key=args.private_key,
-        )
+        ).returncode
     )
 
 

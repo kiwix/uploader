@@ -1,8 +1,8 @@
 import logging
 import os
 from dataclasses import dataclass
-from typing import Any
 from pathlib import Path
+from typing import Any
 
 try:
     import humanfriendly
@@ -43,8 +43,6 @@ class Context:
 
     @classmethod
     def setup(cls, **kwargs: Any):
-        # if cls._instance:
-        #     raise OSError("Already inited Context")
         cls._instance = cls(**kwargs)
         cls._instance.__post_init__()
         cls.setup_logger()
@@ -58,7 +56,7 @@ class Context:
             cls.logger.setLevel(logging.DEBUG if debug else logging.INFO)
         logging.basicConfig(
             level=logging.DEBUG if debug else logging.INFO,
-            format="%(asctime)s %(levelname)s | %(message)s",
+            format="%(asctime)s [%(threadName)40s] %(levelname)8s | %(message)s",
         )
 
         def handle_exc(msg, *args, **kwargs):

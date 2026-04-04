@@ -2,7 +2,13 @@ import subprocess
 from pathlib import Path
 
 from kiwix_uploader.context import Context
-from kiwix_uploader.utils import now, parse_url, remove_source_file, display_stats, rebuild_uri
+from kiwix_uploader.utils import (
+    display_stats,
+    now,
+    parse_url,
+    rebuild_uri,
+    remove_source_file,
+)
 
 context = Context.get()
 logger = context.logger
@@ -115,7 +121,7 @@ def scp_upload_file(
     scp = scp_actual_upload(
         private_key,
         context.marker_file,
-        rebuild_uri(upload_url, path=marker_dest_path),
+        rebuild_uri(parse_url(upload_url), path=marker_dest_path),
         cipher,
         compress,
         bandwidth,
