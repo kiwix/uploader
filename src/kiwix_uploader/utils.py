@@ -8,7 +8,9 @@ import urllib.parse
 from pathlib import Path
 from typing import Callable
 
-from kiwix_uploader.context import Context, humanfriendly
+from kiwix_uploader.context import Context
+
+import humanfriendly
 
 context = Context.get()
 logger = context.logger
@@ -100,16 +102,10 @@ def display_stats(
 ):
     ended_on = ended_on or now()
     duration = (ended_on - started_on).total_seconds()
-    if humanfriendly:
-        hfilesize = humanfriendly.format_size(filesize, binary=True)
-        hduration = humanfriendly.format_timespan(duration, max_units=2)
-        speed = humanfriendly.format_size(filesize / duration)
-        msg = f"uploaded {hfilesize} in {hduration} ({speed}/s)"
-    else:
-        hfilesize = filesize / 2**20  # size in MiB
-        speed = filesize / 1000000 / duration  # MB/s
-        duration = duration / 60  # in mn
-        msg = f"uploaded {hfilesize:.3}MiB in {duration:.1}mn ({speed:.3}MBps)"
+    hfilesize = humanfriendly.format_size(filesize, binary=True)
+    hduration = humanfriendly.format_timespan(duration, max_units=2)
+    speed = humanfriendly.format_size(filesize / duration)
+    msg = f"uploaded {hfilesize} in {hduration} ({speed}/s)"
     logger.info(f"[stats] {msg}")
 
 
@@ -163,3 +159,17 @@ def watched_upload(delay: int, method: Callable, **kwargs):
         )
     if not exit_catcher.requested:
         logger.info(f"File last modified on {last_change}. Delay expired.")
+
+
+def get_expiration_for(delete_after: int) -> datetime.datetime:
+    # set expiration after bucket's min retention.
+    # bucket retention is 1d minumum.
+    # can be configured to loger value.
+    # if expiration before bucket min retention, raises 400 Bad Request
+    # on compliance
+    return (
+        datetime.datetime.now()
+        + datetime.timedelta(days=max(delete_after, 0) or 1)
+        # adding 1mn to prevent clash with bucket's equivalent min retention
+        + datetime.timedelta(seconds=60)
+    )

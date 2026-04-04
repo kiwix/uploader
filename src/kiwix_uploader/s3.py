@@ -22,7 +22,8 @@ def s3_upload_file(
     compress: bool = context.compress,  # not relevant
     bandwidth: int = context.bandwidth,  # not supported
     cipher: str = context.cipher,  # not relevant
-    delete_after: int = context.delete_after,  # nb of days to expire upload file after
+    delete_after: int = context.delete_after,  # nb of days to mark file for deletion (marker file only)
+    wasabi_delete_after: int = context.wasabi_delete_after,  # nb of days to expire upload file after
 ):
     def get_url_scheme(url: urllib.parse.ParseResult) -> str:
         if url.scheme.startswith("s3+http"):
@@ -69,7 +70,7 @@ def s3_upload_file(
             # on compliance
             expire_on = (
                 datetime.datetime.now()
-                + datetime.timedelta(days=delete_after or 1)
+                + datetime.timedelta(days=max(delete_after, 0) or 1)
                 # adding 1mn to prevent clash with bucket's equivalent min retention
                 + datetime.timedelta(seconds=60)
             )

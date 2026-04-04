@@ -58,7 +58,8 @@ def scp_upload_file(
     compress: bool = context.compress,
     bandwidth: int = context.bandwidth,
     cipher: str = context.cipher,
-    delete_after: int = context.delete_after,  # not supported
+    delete_after: int = context.delete_after,
+    wasabi_delete_after: int = context.wasabi_delete_after,  # not supported
     attempts: int = context.attempts,
     attempts_delay: int = context.attempts_delay,
 ):
