@@ -178,3 +178,10 @@ class UploadsManager:
             if thread.is_alive():
                 return None
         return sum([t.returncode or 0 for t in self.threads])
+
+    @property
+    def succeeded(self) -> bool:
+        try:
+            return self.returncode == 0
+        except Exception:
+            return False

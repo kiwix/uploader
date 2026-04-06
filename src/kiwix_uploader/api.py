@@ -80,10 +80,16 @@ def upload_file(
     if upload_uri.scheme not in context.s3_schemes and wasabi_delete_after > 0:
         logger.warning("--delete-after only supported on S3/Wasabi.")
 
+    try:
+        filesize = src_path.stat().st_size
+    except Exception as exc:
+        logger.critical(f"Unable to retrieve file size: {exc!s}")
+        return 1
+
     kwargs = {
         "src_path": src_path,
         "upload_url": upload_url,
-        "filesize": src_path.stat().st_size,
+        "filesize": filesize,
         "private_key": private_key,
         "resume": resume,
         "move": move,
@@ -108,9 +114,14 @@ def upload_file(
         )
         marker_fpath = marker_dir.joinpath(f"{src_path.name}.delete_on")
         marker_fpath.write_text(get_expiration_for(delete_after).isoformat())
+        try:
+            marker_filesize = marker_fpath.stat().st_size
+        except Exception as exc:
+            logger.critical(f"Unable to retrieve marker file size: {exc!s}")
+            return 1
         marker_kwargs = kwargs.copy()
         marker_kwargs["src_path"] = marker_fpath
-        marker_kwargs["filesize"] = marker_fpath.stat().st_size
+        marker_kwargs["filesize"] = marker_filesize
         marker_kwargs["resume"] = False
         marker_kwargs["bandwidth"] = context.bandwidth
         marker_kwargs["delete_after"] = context.delete_after
@@ -320,7 +331,7 @@ def multi_file_upload(
     manager.start()
     manager.wait()
 
-    if delete:
+    if manager.succeeded and delete:
         remove_source_file(src_path)
 
     return manager.results
