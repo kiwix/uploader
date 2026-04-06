@@ -7,7 +7,7 @@ ENV MARKER_FILE=/usr/share/marker
 ENV SCP_BIN_PATH=/usr/bin/scp
 ENV SFTP_BIN_PATH=/usr/bin/sftp
 
-COPY pyproject.toml README.md /src/
+COPY pyproject.toml README.md LICENSE /src/
 COPY src/kiwix_uploader/__init__.py /src/src/kiwix_uploader/__init__.py
 
 RUN apk add openssh \

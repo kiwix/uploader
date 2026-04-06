@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "kiwix-uploader"
-version = "1.4"
+version = "1.5"
 description = "SCP/SFTP helper for Kiwix, openZIM and offspot uploads to our dropbox"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -12,12 +12,14 @@ dependencies = [
     "kiwixstorage==0.10.1",
     "humanfriendly==10.0",
 ]
-license = {text = "GPL-3.0-or-later"}
+license = "GPL-3.0-or-later"
+license-files = [
+    "LICENSE",
+]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
-    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     "Operating System :: POSIX",
 ]
 
