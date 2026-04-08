@@ -141,3 +141,36 @@ def scp_upload_file(
     display_stats(filesize, started_on, ended_on)
 
     return scp.returncode
+
+
+def scp_remove_file(upload_url: str, private_key: Path | None = None):
+
+    upload_uri = parse_url(upload_url)
+    if upload_uri.path.endswith("/"):
+        raise NotImplementedError("Does not support removing folders")
+    ssh_uri = f"{upload_uri.username}:{upload_uri.password}@{upload_uri.hostname}"
+    ssh_port = upload_uri.port or 22
+
+    args = [
+        str(context.ssh_bin_path),
+        "-vvv",
+        "-i",
+        str(private_key),
+        # "-q",  # quiet mode
+        "-o",
+        f"GlobalKnownHostsFile={context.host_know_file}",
+        "-p",
+        str(ssh_port),
+        ssh_uri,
+    ]
+
+    args += ["rm", "-f", str(upload_uri.path)]
+
+    logger.info("Executing: {args}".format(args=" ".join(args)))
+
+    ssh = subprocess.run(
+        args=args, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+    )
+    if ssh.returncode == 0:
+        logger.info("Removal succeeded")
+    return ssh.returncode

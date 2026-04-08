@@ -20,6 +20,7 @@ class Context:
         Path(os.getenv("HOST_KNOW_FILE", "~/.ssh/known_hosts")).expanduser().resolve()
     )
     marker_file = Path(os.getenv("MARKER_FILE", "/usr/share/marker"))
+    ssh_bin_path = Path(os.getenv("SSH_BIN_PATH", "/usr/bin/ssh"))
     scp_bin_path = Path(os.getenv("SCP_BIN_PATH", "/usr/bin/scp"))
     sftp_bin_path = Path(os.getenv("SFTP_BIN_PATH", "/usr/bin/sftp"))
     s3_schemes = ("s3", "s3+http", "s3+https")

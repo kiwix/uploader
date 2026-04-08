@@ -11,6 +11,16 @@ context = Context.get()
 logger = context.logger
 
 
+def get_url_scheme(url: urllib.parse.ParseResult) -> str:
+    if url.scheme.startswith("s3+http"):
+        return "http"
+    # covers both "s3" and "s3+https"
+    elif url.scheme.startswith("s3") or url.scheme.startswith("s3+https"):
+        return "https"
+    else:
+        raise ValueError(f"Unsupported URL scheme in: {url}")
+
+
 def s3_upload_file(
     src_path: Path,
     upload_url: str,
@@ -25,15 +35,6 @@ def s3_upload_file(
     delete_after: int = context.delete_after,  # nb of days to mark file for deletion (marker file only)
     wasabi_delete_after: int = context.wasabi_delete_after,  # nb of days to expire upload file after
 ):
-    def get_url_scheme(url: urllib.parse.ParseResult) -> str:
-        if url.scheme.startswith("s3+http"):
-            return "http"
-        # covers both "s3" and "s3+https"
-        elif url.scheme.startswith("s3") or url.scheme.startswith("s3+https"):
-            return "https"
-        else:
-            raise ValueError(f"Unsupported URL scheme in: {url}")
-
     started_on = now()
     upload_uri = urllib.parse.urlparse(upload_url)
     s3_storage = KiwixStorage(
@@ -85,3 +86,24 @@ def s3_upload_file(
     display_stats(filesize, started_on, ended_on)
 
     return 0
+
+
+def s3_remove_file(upload_url: str, private_key: Path | None = None):
+    upload_uri = urllib.parse.urlparse(upload_url)
+    s3_storage = KiwixStorage(
+        str(rebuild_uri(upload_uri, scheme=get_url_scheme(upload_uri)).geturl())
+    )
+    logger.debug(f"S3 initialized for {s3_storage.url.netloc}/{s3_storage.bucket_name}")
+
+    key = upload_uri.path[1:]
+
+    try:
+        logger.info(f"Removing {key}")
+        s3_storage.delete_object(key=key)
+    except Exception as exc:
+        # if credentials doesn't allow DELETE or if there is an unsatisfied
+        # retention, will raise PermissionError
+        logger.error(f"uploader failed: {exc}")
+        logger.exception(exc)
+        return 1
+    logger.info("uploader ran successfuly.")

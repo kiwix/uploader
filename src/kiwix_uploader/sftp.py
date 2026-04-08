@@ -150,3 +150,34 @@ def sftp_upload_file(
         logger.error(f"sftp failed returning {sftp.returncode}:: {sftp.stdout}")
 
     return sftp.returncode
+
+
+def sftp_remove_file(upload_url: str, private_key: Path | None = None):
+    upload_uri = parse_url(upload_url)
+    if upload_uri.path.endswith("/"):
+        raise NotImplementedError("Does not support removing folders")
+    sftp_uri = rebuild_uri(upload_uri, path="/")
+
+    commands = [f"rm {upload_uri.path!s}", "bye"]
+    args = [
+        str(context.sftp_bin_path),
+        "-i",
+        str(private_key),
+        "-b",
+        get_batch_file(commands),
+        "-o",
+        f"GlobalKnownHostsFile={context.host_know_file}",
+    ]
+    args += [sftp_uri.geturl()]
+
+    logger.info("Executing: {args}".format(args=" ".join(args)))
+
+    sftp = subprocess.run(
+        args=args,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    if sftp.returncode == 0:
+        logger.info("Removal succeeded")
+    return sftp.returncode

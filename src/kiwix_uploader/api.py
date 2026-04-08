@@ -5,10 +5,12 @@ import time
 import urllib.parse
 from pathlib import Path
 
+import humanfriendly
+
 from kiwix_uploader.context import Context
-from kiwix_uploader.s3 import s3_upload_file
-from kiwix_uploader.scp import scp_upload_file
-from kiwix_uploader.sftp import sftp_upload_file
+from kiwix_uploader.s3 import s3_remove_file, s3_upload_file
+from kiwix_uploader.scp import scp_remove_file, scp_upload_file
+from kiwix_uploader.sftp import sftp_remove_file, sftp_upload_file
 from kiwix_uploader.upload import UploadResults, UploadsManager
 from kiwix_uploader.utils import (
     ack_host_fingerprint,
@@ -17,8 +19,6 @@ from kiwix_uploader.utils import (
     remove_source_file,
     watched_upload,
 )
-
-import humanfriendly
 
 context = Context.get()
 logger = context.logger
@@ -335,3 +335,75 @@ def multi_file_upload(
         remove_source_file(src_path)
 
     return manager.results
+
+
+def remove_file(
+    upload_url: str, private_key: Path | None = None, username: str = context.username
+):
+    try:
+        upload_uri = urllib.parse.urlparse(upload_url)
+        Path(upload_uri.path)
+    except Exception as exc:
+        logger.error(f"invalid upload URL: `{upload_uri}` ({exc}).")
+        return 1
+
+    # set username in URI if provided and URI has none
+    if upload_uri.scheme in ("scp", "sftp") and username and not upload_uri.username:
+        upload_uri = rebuild_uri(upload_uri, username=username)
+
+    if upload_uri.scheme in context.s3_schemes and upload_uri.query:
+        params = urllib.parse.parse_qs(str(upload_uri.query))
+        if "secretAccessKey" in params.keys():
+            params["secretAccessKey"] = ["xxxxx"]
+        safe_upload_uri = rebuild_uri(
+            upload_uri, query=urllib.parse.urlencode(params, doseq=True), path=""
+        ).geturl()
+    else:
+        safe_upload_uri = upload_uri.geturl()
+
+    logger.info(
+        f"Starting removal of {Path(upload_uri.path).name} from {safe_upload_uri}"
+    )
+
+    method = {
+        "scp": scp_remove_file,
+        "sftp": sftp_remove_file,
+        "s3": s3_remove_file,
+        "s3+http": s3_remove_file,
+        "s3+https": s3_remove_file,
+    }.get(str(upload_uri.scheme))
+
+    if not method:
+        logger.critical(f"URL scheme not supported: {upload_uri.scheme}")
+        return 1
+
+    return method(upload_url=upload_uri.geturl(), private_key=private_key)
+
+
+def remove_file_retrying(
+    upload_url: str,
+    private_key: Path | None = None,
+    username: str = context.username,
+    attempts: int = context.attempts,
+    attempts_delay: int = context.attempts_delay,
+):
+    logger.info("remove_file_retrying")
+    attempts = attempts or 1
+    attempts_delay = attempts_delay or 0
+    rc = None
+
+    while attempts and rc != 0:
+        attempts -= 1
+        rc = remove_file(
+            upload_url=upload_url,
+            private_key=private_key,
+        )
+        if rc != 0:
+            if not attempts:
+                return rc
+            logger.warning(f"Removal failed: {attempts} attempts remaining.")
+            if attempts_delay:
+                logger.info(f"Pausing for {attempts_delay}s")
+                time.sleep(attempts_delay)
+            continue
+    return rc
