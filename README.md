@@ -70,3 +70,10 @@ multi_file_upload(
 ```
 
 _Note_: `multi_file_upload` returns an `UploadResults` (see `upload` module)
+
+```py
+remove_file_retrying(
+    upload_url="sftp://uploader@warehouse.farm.openzim.org/zim/my_file.zim",
+    private_key=Path("~/.ssh/id_ed25519").expanduser()
+)
+```

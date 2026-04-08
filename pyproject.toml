@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "kiwix-uploader"
-version = "1.5.1"
+version = "1.6.0"
 description = "SCP/SFTP helper for Kiwix, openZIM and offspot uploads to our dropbox"
 readme = "README.md"
 requires-python = ">=3.13"
