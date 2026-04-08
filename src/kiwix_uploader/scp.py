@@ -24,7 +24,7 @@ def scp_actual_upload(private_key, source_path, dest_uri, cipher, compress, band
         "-B",  # batch mode
         "-q",  # quiet mode
         "-o",
-        f"GlobalKnownHostsFile {context.host_know_file}",
+        f"GlobalKnownHostsFile={context.host_know_file}",
     ]
 
     if cipher:
@@ -153,10 +153,9 @@ def scp_remove_file(upload_url: str, private_key: Path | None = None):
 
     args = [
         str(context.ssh_bin_path),
-        "-vvv",
         "-i",
         str(private_key),
-        # "-q",  # quiet mode
+        "-q",  # quiet mode
         "-o",
         f"GlobalKnownHostsFile={context.host_know_file}",
         "-p",

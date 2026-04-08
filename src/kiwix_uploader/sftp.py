@@ -23,7 +23,7 @@ def sftp_remote_file_exists(private_key, sftp_uri, fname):
         "-b",
         get_batch_file([f"ls -n {fname}"]),
         "-o",
-        f"GlobalKnownHostsFile {context.host_know_file}",
+        f"GlobalKnownHostsFile={context.host_know_file}",
         sftp_uri.geturl(),
     ]
 
@@ -57,7 +57,7 @@ def sftp_actual_upload(
         "-b",
         get_batch_file(commands),
         "-o",
-        f"GlobalKnownHostsFile {context.host_know_file}",
+        f"GlobalKnownHostsFile={context.host_know_file}",
     ]
 
     if cipher:
