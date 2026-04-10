@@ -5,21 +5,18 @@ jobs:
   lint:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.14"
-          architecture: x64
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
 
-      - name: Install dependencies (and project)
+      - name: Set just binary env and justfile runner
         run: |
-          pip install -U pip
-          pip install -e .[lint,scripts,test,check]
+          echo "PYRUN=uv run --extra dev" >> $GITHUB_ENV
+          echo "JUSTBIN=uvx --from rust-just just" >> $GITHUB_ENV
 
       - name: Linting
-        run: just lint
+        run: $JUSTBIN lint
 
       - name: Typing
-        run: just check
+        run: $JUSTBIN check

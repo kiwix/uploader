@@ -17,19 +17,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python }}
-          architecture: x64
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
 
-      - name: Install dependencies (and project)
+      - name: Set just binary env and justfile runner
         run: |
-          pip install -U pip
-          pip install -e .[test,scripts]
+          echo "PYRUN=uv run --extra dev -p ${{matrix.python}}" >> $GITHUB_ENV
+          echo "JUSTBIN=uvx --from rust-just just" >> $GITHUB_ENV
 
       - name: Run the tests
-        run: just coverage "-vvv"
+        run: $JUSTBIN coverage "-vvv"
 
       - name: Upload coverage report to codecov
         if: matrix.python == '3.12'
@@ -41,10 +38,10 @@ jobs:
   build_python:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version-file: pyproject.toml
           architecture: x64
@@ -57,7 +54,7 @@ jobs:
   build_docker:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Ensure we can build the Docker image
         run: |
