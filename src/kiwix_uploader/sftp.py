@@ -15,7 +15,7 @@ context = Context.get()
 logger = context.logger
 
 
-def sftp_remote_file_exists(private_key, sftp_uri, fname):
+def sftp_remote_filesize(private_key, sftp_uri, fname) -> int:
     args = [
         str(context.sftp_bin_path),
         "-i",
@@ -37,19 +37,19 @@ def sftp_remote_file_exists(private_key, sftp_uri, fname):
     )
     last_line = sftp.stdout.strip().split("\n")[-1]
     if not last_line.endswith(fname) or last_line.startswith("sftp"):
-        return False
+        return 0
 
     try:
         remote_size = int(last_line.split()[4])
     except Exception:
-        return False
+        return 0
 
-    return remote_size or sftp.returncode == 0
+    return remote_size or 0
 
 
 def sftp_actual_upload(
     private_key, source_path, sftp_uri, commands, cipher, compress, bandwidth
-):
+) -> subprocess.CompletedProcess:
     args = [
         str(context.sftp_bin_path),
         "-i",
@@ -98,7 +98,7 @@ def sftp_upload_file(
     wasabi_delete_after: int = context.wasabi_delete_after,  # not supported
     attempts: int = context.attempts,
     attempts_delay: int = context.attempts_delay,
-):
+) -> int:
     # we need to reconstruct the url but without an ending filename
     upload_uri = parse_url(upload_url)
     if not upload_uri.path.endswith("/"):
@@ -112,7 +112,7 @@ def sftp_upload_file(
     put_cmd = "put"  # default to overwritting
     if resume:
         # check if there's already a matching file on the remte
-        existing_size = sftp_remote_file_exists(private_key, sftp_uri, final_fname)
+        existing_size = sftp_remote_filesize(private_key, sftp_uri, final_fname)
         # if source and destination filesizes match, return as sftp would fail
         if existing_size >= filesize:
             logger.info(
@@ -128,12 +128,12 @@ def sftp_upload_file(
     if move:
         temp_fname = f"{final_fname}.tmp"
         commands = [
-            f"{put_cmd} {src_path} {temp_fname}",
-            f"rename {temp_fname} {final_fname}",
+            f'{put_cmd} "{src_path}" "{temp_fname}"',
+            f'rename "{temp_fname}" "{final_fname}"',
             "bye",
         ]
     else:
-        commands = [f"{put_cmd} {src_path} {final_fname}", "bye"]
+        commands = [f'{put_cmd} "{src_path}" "{final_fname}"', "bye"]
 
     started_on = now()
     sftp = sftp_actual_upload(
@@ -152,13 +152,13 @@ def sftp_upload_file(
     return sftp.returncode
 
 
-def sftp_remove_file(upload_url: str, private_key: Path | None = None):
+def sftp_remove_file(upload_url: str, private_key: Path | None = None) -> int:
     upload_uri = parse_url(upload_url)
     if upload_uri.path.endswith("/"):
         raise NotImplementedError("Does not support removing folders")
-    sftp_uri = rebuild_uri(upload_uri, path="/")
+    sftp_uri = rebuild_uri(upload_uri, path="/").geturl()
 
-    commands = [f"rm {upload_uri.path!s}", "bye"]
+    commands = [f'rm "{upload_uri.path!s}"', "bye"]
     args = [
         str(context.sftp_bin_path),
         "-i",
@@ -168,7 +168,7 @@ def sftp_remove_file(upload_url: str, private_key: Path | None = None):
         "-o",
         f"GlobalKnownHostsFile={context.host_know_file}",
     ]
-    args += [sftp_uri.geturl()]
+    args += [sftp_uri]
 
     logger.info("Executing: {args}".format(args=" ".join(args)))
 

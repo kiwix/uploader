@@ -39,7 +39,6 @@ test = [
 ]
 dev = [
   "ipython==9.11.0",
-  "just==0.8.165",
   "kiwix-uploader[scripts]",
   "kiwix-uploader[lint]",
   "kiwix-uploader[test]",
