@@ -14,7 +14,9 @@ context = Context.get()
 logger = context.logger
 
 
-def scp_actual_upload(private_key, source_path, dest_uri, cipher, compress, bandwidth):
+def scp_actual_upload(
+    private_key, source_path, dest_uri, cipher, compress, bandwidth
+) -> subprocess.CompletedProcess:
     """transfer a file via SCP and return subprocess"""
 
     args = [
@@ -62,7 +64,7 @@ def scp_upload_file(
     wasabi_delete_after: int = context.wasabi_delete_after,  # not supported
     attempts: int = context.attempts,
     attempts_delay: int = context.attempts_delay,
-):
+) -> int:
     # directly uploading final file to final destination
     if not move:
         started_on = now()
@@ -143,12 +145,12 @@ def scp_upload_file(
     return scp.returncode
 
 
-def scp_remove_file(upload_url: str, private_key: Path | None = None):
+def scp_remove_file(upload_url: str, private_key: Path | None = None) -> int:
 
     upload_uri = parse_url(upload_url)
     if upload_uri.path.endswith("/"):
         raise NotImplementedError("Does not support removing folders")
-    ssh_uri = f"{upload_uri.username}:{upload_uri.password}@{upload_uri.hostname}"
+    ssh_uri = upload_uri.netloc.rsplit(":", 1)[0]
     ssh_port = upload_uri.port or 22
 
     args = [

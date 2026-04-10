@@ -109,7 +109,7 @@ def display_stats(
     logger.info(f"[stats] {msg}")
 
 
-def watched_upload(delay: int, method: Callable, **kwargs):
+def watched_upload(delay: int, method: Callable, **kwargs) -> int:
     str_delay = humanfriendly.format_timespan(delay) if humanfriendly else f"{delay}s"
     logger.info(f"... watching file until {str_delay} after last modification")
 
@@ -159,6 +159,8 @@ def watched_upload(delay: int, method: Callable, **kwargs):
         )
     if not exit_catcher.requested:
         logger.info(f"File last modified on {last_change}. Delay expired.")
+
+    return 0
 
 
 def get_expiration_for(delete_after: int) -> datetime.datetime:

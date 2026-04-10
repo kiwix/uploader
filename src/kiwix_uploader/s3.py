@@ -34,7 +34,7 @@ def s3_upload_file(
     cipher: str = context.cipher,  # not relevant
     delete_after: int = context.delete_after,  # nb of days to mark file for deletion (marker file only)
     wasabi_delete_after: int = context.wasabi_delete_after,  # nb of days to expire upload file after
-):
+) -> int:
     started_on = now()
     upload_uri = urllib.parse.urlparse(upload_url)
     s3_storage = KiwixStorage(
@@ -88,7 +88,7 @@ def s3_upload_file(
     return 0
 
 
-def s3_remove_file(upload_url: str, private_key: Path | None = None):
+def s3_remove_file(upload_url: str, private_key: Path | None = None) -> int:
     upload_uri = urllib.parse.urlparse(upload_url)
     s3_storage = KiwixStorage(
         str(rebuild_uri(upload_uri, scheme=get_url_scheme(upload_uri)).geturl())
@@ -107,3 +107,4 @@ def s3_remove_file(upload_url: str, private_key: Path | None = None):
         logger.exception(exc)
         return 1
     logger.info("uploader ran successfuly.")
+    return 0
