@@ -25,13 +25,7 @@ def s3_upload_file(
     src_path: Path,
     upload_url: str,
     filesize: int,
-    private_key: Path | None = None,  # not used
-    resume: bool = context.resume,  # not supported
-    move: bool = context.move,  # not relevant
     delete: bool = context.delete,
-    compress: bool = context.compress,  # not relevant
-    bandwidth: int = context.bandwidth,  # not supported
-    cipher: str = context.cipher,  # not relevant
     delete_after: int = context.delete_after,  # nb of days to mark file for deletion (marker file only)
     wasabi_delete_after: int = context.wasabi_delete_after,  # nb of days to expire upload file after
 ) -> int:

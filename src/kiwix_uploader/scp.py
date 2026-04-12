@@ -54,7 +54,6 @@ def scp_upload_file(
     private_key: Path | None = None,
     username: str = context.username,
     resume: bool = context.resume,
-    watch_for: str = context.watch_for,
     move: bool = context.move,
     delete: bool = context.delete,
     compress: bool = context.compress,
@@ -62,8 +61,6 @@ def scp_upload_file(
     cipher: str = context.cipher,
     delete_after: int = context.delete_after,
     wasabi_delete_after: int = context.wasabi_delete_after,  # not supported
-    attempts: int = context.attempts,
-    attempts_delay: int = context.attempts_delay,
 ) -> int:
     # directly uploading final file to final destination
     if not move:

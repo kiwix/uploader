@@ -107,6 +107,7 @@ def upload_file(
         "upload_url": upload_url,
         "filesize": filesize,
         "private_key": private_key,
+        "username": username,
         "resume": resume,
         "move": move,
         "delete": delete,
@@ -116,6 +117,21 @@ def upload_file(
         "delete_after": delete_after,
         "wasabi_delete_after": wasabi_delete_after,
     }
+
+    if upload_uri.scheme in context.s3_schemes:
+        for key in (
+            "private_key",
+            "username",
+            "resume",
+            "delete",
+            "move",
+            "compress",
+            "bandwidth",
+            "cipher",
+        ):
+            kwargs.pop(key)
+    else:
+        kwargs.pop("wasabi_delete_after")
 
     # upload marker first
     if delete_after > 0:

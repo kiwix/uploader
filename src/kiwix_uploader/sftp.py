@@ -88,7 +88,6 @@ def sftp_upload_file(
     private_key: Path | None = None,
     username: str = context.username,
     resume: bool = context.resume,
-    watch_for: str = context.watch_for,
     move: bool = context.move,
     delete: bool = context.delete,
     compress: bool = context.compress,
@@ -96,8 +95,6 @@ def sftp_upload_file(
     cipher: str = context.cipher,
     delete_after: int = context.delete_after,
     wasabi_delete_after: int = context.wasabi_delete_after,  # not supported
-    attempts: int = context.attempts,
-    attempts_delay: int = context.attempts_delay,
 ) -> int:
     # we need to reconstruct the url but without an ending filename
     upload_uri = parse_url(upload_url)
