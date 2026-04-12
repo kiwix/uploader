@@ -419,29 +419,21 @@ def _upload_marker_file(
     fname = Path(upload_uri.path).name
     marker_fpath = marker_dir.joinpath(f"{fname}{marker_suffix}")
     marker_fpath.write_text(get_expiration_for(delete_after).isoformat())
-    try:
-        marker_filesize = marker_fpath.stat().st_size
-    except Exception as exc:
-        logger.critical(f"Unable to retrieve marker file size: {exc!s}")
-        return 1
-    logger.info(marker_fpath.read_text())
+
     logger.debug(f"Uploading marker file {marker_fpath.name}…")
-    method = _get_upload_method(str(upload_uri.scheme))
-    if not method:
-        logger.critical(f"URI scheme not supported: {upload_uri.scheme}")
-        return 1
-    rc = method(
-        upload_url=rebuild_uri(
-            upload_uri, path=str(Path(upload_uri.path).parent)
-        ).geturl(),
-        private_key=private_key,
-        username=username,
-        src_path=marker_fpath,
-        filesize=marker_filesize,
-        resume=False,
-    )
-    shutil.rmtree(marker_dir, ignore_errors=True)
-    return rc
+    try:
+        return upload_file(
+            upload_url=rebuild_uri(
+                upload_uri, path=str(Path(upload_uri.path).parent)
+            ).geturl(),
+            delete=True,
+            private_key=private_key,
+            username=username,
+            src_path=marker_fpath,
+            resume=False,
+        )
+    finally:
+        shutil.rmtree(marker_dir, ignore_errors=True)
 
 
 def update_marker(
