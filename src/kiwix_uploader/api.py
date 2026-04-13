@@ -137,7 +137,7 @@ def upload_file(
     if delete_after > 0:
         rc = _upload_marker_file(
             upload_url=rebuild_uri(
-                upload_uri, path=f"{upload_uri.path}{src_path.name}"
+                upload_uri, path=str(Path(upload_uri.path).joinpath(src_path.name))
             ).geturl(),
             private_key=private_key,
             username=username,
