@@ -56,7 +56,7 @@ def s3_upload_file(
     logger.info("uploader ran successfuly.")
 
     # setting autodelete
-    if delete_after > 0:
+    if wasabi_delete_after > 0:
         try:
             # set expiration after bucket's min retention.
             # bucket retention is 1d minumum.
@@ -65,7 +65,7 @@ def s3_upload_file(
             # on compliance
             expire_on = (
                 datetime.datetime.now()
-                + datetime.timedelta(days=max(delete_after, 0) or 1)
+                + datetime.timedelta(days=max(wasabi_delete_after, 0) or 1)
                 # adding 1mn to prevent clash with bucket's equivalent min retention
                 + datetime.timedelta(seconds=60)
             )
