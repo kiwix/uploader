@@ -28,7 +28,7 @@ coverage args=coverage_args:
   {{runner}} coverage html
 
 debug:
-  {{runner}} ipython
+  DEBUG=y {{runner}} ipython
 
 version:
   {{runner}} python3 -V
