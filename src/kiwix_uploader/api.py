@@ -114,7 +114,6 @@ def upload_file(
         "compress": compress,
         "bandwidth": bandwidth,
         "cipher": cipher,
-        "delete_after": delete_after,
         "wasabi_delete_after": wasabi_delete_after,
     }
 
@@ -393,7 +392,6 @@ def remove_file_retrying(
     attempts_delay: int = context.attempts_delay,
 ) -> int:
     """Removes single file from single destination, retrying upon errors: 0 upon success"""
-    logger.info("remove_file_retrying")
     attempts = attempts or 1
     attempts_delay = attempts_delay or 0
     rc = 1

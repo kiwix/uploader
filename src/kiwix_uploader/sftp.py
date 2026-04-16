@@ -93,8 +93,6 @@ def sftp_upload_file(
     compress: bool = context.compress,
     bandwidth: int = context.bandwidth,
     cipher: str = context.cipher,
-    delete_after: int = context.delete_after,
-    wasabi_delete_after: int = context.wasabi_delete_after,  # not supported
 ) -> int:
     # we need to reconstruct the url but without an ending filename
     upload_uri = parse_url(upload_url)

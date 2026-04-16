@@ -26,7 +26,6 @@ def s3_upload_file(
     upload_url: str,
     filesize: int,
     delete: bool = context.delete,
-    delete_after: int = context.delete_after,  # nb of days to mark file for deletion (marker file only)
     wasabi_delete_after: int = context.wasabi_delete_after,  # nb of days to expire upload file after
 ) -> int:
     started_on = now()
